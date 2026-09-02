@@ -53,6 +53,16 @@ static unsigned long cooldownUntil;             // timestamp until which re-trig
 const unsigned long pulseInterval = 3000UL;     // time between pulse starts (ms)
 const unsigned long cooldownDuration = 60000UL; // 1 minute cooldown after sequence (ms)
 
+// Pump (shared, waters whichever plant is dry)
+// NOTE: pumpPin drives a relay/MOSFET module, not the pump directly -
+// a digital pin cannot supply enough current for the pump motor.
+const int pumpPin = 7;
+static bool pumpActive;
+static unsigned long pumpStartMillis;
+static unsigned long pumpCooldownUntil;              // timestamp until which re-trigger is blocked
+const unsigned long pumpRunDuration = 30000UL;       // run pump for 30s
+const unsigned long pumpCooldownDuration = 300000UL; // 5 minute cooldown after running
+
 // Screen
 String text;
 int16_t tx1, ty1;
@@ -74,6 +84,7 @@ const unsigned long displayRefreshInterval = 500UL; // ms (refresh while page sh
 const unsigned long displayInterval = 5000UL;       // ms
 
 void alarm(int airHumidity, int getHours);
+void pump(int soilHumidity1, int soilHumidity2, int soilHumidity3);
 void screen(const String &printDisplay1, const String &printDisplay2, const String &printDisplay3);
 void updateReadings();
 
@@ -91,6 +102,10 @@ void setup()
 
   // display
   display.begin(SSD1306_SWITCHCAPVCC, 0x3C);
+
+  // pump
+  pinMode(pumpPin, OUTPUT);
+  digitalWrite(pumpPin, LOW);
 
   // WiFi
   screen("Connecting to WiFi:", ssid, "");
@@ -112,6 +127,9 @@ void loop()
 
   // alarm RH > 60% and before 10pm-8am
   alarm(airHumidity, getHours);
+
+  // water any plant below its soil humidity threshold
+  pump(soilHumidity1, soilHumidity2, soilHumidity3);
 
   // non-blocking display: switch pages every `displayInterval` ms,
   // but refresh the currently visible content every `displayRefreshInterval` ms
@@ -283,6 +301,37 @@ void alarm(int airHumidity, int getHours)
     buzzer.tone(0, 0);
     cooldownUntil = now + cooldownDuration;
     pulseCount = 0;
+  }
+}
+
+void pump(int soilHumidity1, int soilHumidity2, int soilHumidity3)
+{
+  // Non-blocking pump control using millis(). Waters whenever any plant's
+  // soil humidity is below its threshold, running for `pumpRunDuration`
+  // and then blocking re-trigger for `pumpCooldownDuration`.
+  now = millis();
+
+  if (pumpActive)
+  {
+    if (now - pumpStartMillis >= pumpRunDuration)
+    {
+      pumpActive = false;
+      digitalWrite(pumpPin, LOW);
+      pumpCooldownUntil = now + pumpCooldownDuration;
+    }
+    return;
+  }
+
+  // still cooling down since last run
+  if (now < pumpCooldownUntil)
+    return;
+
+  bool needsWater = (soilHumidity1 < 35) || (soilHumidity2 < 25) || (soilHumidity3 < 35);
+  if (needsWater)
+  {
+    pumpActive = true;
+    pumpStartMillis = now;
+    digitalWrite(pumpPin, HIGH);
   }
 }
 
