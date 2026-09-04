@@ -163,6 +163,8 @@ void loop()
         alarmStillActive = true;
       if (displayPage == 8 && soilHumidity3 < 35)
         alarmStillActive = true;
+      if (displayPage == 9 && pumpActive)
+        alarmStillActive = true;
 
       if (!alarmStillActive)
       {
@@ -204,6 +206,11 @@ void loop()
     {
       displayPage = 8;
     }
+    // Pump running (takes priority over other pages)
+    if (pumpActive)
+    {
+      displayPage = 9;
+    }
 
     if (displayPage == 0)
     {
@@ -240,6 +247,10 @@ void loop()
     else if (displayPage == 8)
     {
       screen("ALARM! Ficus Bonsai dry!: ", String(soilHumidity3), "%");
+    }
+    else if (displayPage == 9)
+    {
+      screen("Watering...", "", "");
     }
   }
 }
