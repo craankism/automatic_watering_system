@@ -35,8 +35,8 @@ int sensorVal1;
 int sensorVal2;
 int sensorVal3;
 int soilHumidity1;
-int soilHumidity2;
-int soilHumidity3;
+// int soilHumidity2;
+// int soilHumidity3;
 
 // Time
 String getTime;
@@ -59,9 +59,9 @@ const unsigned long cooldownDuration = 60000UL; // 1 minute cooldown after seque
 const int pumpPin = 7;
 static bool pumpActive;
 static unsigned long pumpStartMillis;
-static unsigned long pumpCooldownUntil;              // timestamp until which re-trigger is blocked
-const unsigned long pumpRunDuration = 30000UL;       // run pump for 30s
-const unsigned long pumpCooldownDuration = 300000UL; // 5 minute cooldown after running
+static unsigned long pumpCooldownUntil;             // timestamp until which re-trigger is blocked
+const unsigned long pumpRunDuration = 10000UL;      // run pump for 30s
+const unsigned long pumpCooldownDuration = 30000UL; // 30s cooldown after running
 
 // Screen
 String text;
@@ -82,9 +82,12 @@ unsigned long lastDisplaySwitch = 0;
 unsigned long lastDisplayRefresh = 0;
 const unsigned long displayRefreshInterval = 500UL; // ms (refresh while page shown)
 const unsigned long displayInterval = 5000UL;       // ms
+bool needsWater;
 
 void alarm(int airHumidity, int getHours);
-void pump(int soilHumidity1, int soilHumidity2, int soilHumidity3);
+// For now
+// void pump(int soilHumidity1, int soilHumidity2, int soilHumidity3);
+void pump(int soilHumidity1);
 void screen(const String &printDisplay1, const String &printDisplay2, const String &printDisplay3);
 void updateReadings();
 
@@ -125,11 +128,13 @@ void loop()
   getTime = timeClient.getFormattedTime();
   getHours = timeClient.getHours();
 
+  // water any plant below its soil humidity threshold
+  // For now
+  pump(soilHumidity1);
+  // pump(soilHumidity1, soilHumidity2, soilHumidity3);
+
   // alarm RH > 60% and before 10pm-8am
   alarm(airHumidity, getHours);
-
-  // water any plant below its soil humidity threshold
-  pump(soilHumidity1, soilHumidity2, soilHumidity3);
 
   // non-blocking display: switch pages every `displayInterval` ms,
   // but refresh the currently visible content every `displayRefreshInterval` ms
@@ -159,10 +164,11 @@ void loop()
         alarmStillActive = true;
       if (displayPage == 6 && soilHumidity1 < 35)
         alarmStillActive = true;
-      if (displayPage == 7 && soilHumidity2 < 25)
-        alarmStillActive = true;
-      if (displayPage == 8 && soilHumidity3 < 35)
-        alarmStillActive = true;
+      // For now
+      // if (displayPage == 7 && soilHumidity2 < 25)
+      //   alarmStillActive = true;
+      // if (displayPage == 8 && soilHumidity3 < 35)
+      //   alarmStillActive = true;
       if (displayPage == 9 && pumpActive)
         alarmStillActive = true;
 
@@ -185,32 +191,32 @@ void loop()
     lastDisplayRefresh = now;
     updateReadings();
 
-    // Alarm display
-    // Air
-    if (airHumidity > 60)
-    {
-      displayPage = 5;
-    }
-    // Ginseng Bonsai
-    if (soilHumidity1 < 35)
-    {
-      displayPage = 6;
-    }
-    // Drachenbaum
-    if (soilHumidity2 < 25)
-    {
-      displayPage = 7;
-    }
-    // Ficus Bonsai
-    if (soilHumidity3 < 35)
-    {
-      displayPage = 8;
-    }
-    // Pump running (takes priority over other pages)
+    // Alarm display (watering status takes priority over all alarms)
     if (pumpActive)
     {
       displayPage = 9;
     }
+    // Air
+    else if (airHumidity > 60)
+    {
+      displayPage = 5;
+    }
+    // Ginseng Bonsai
+    else if (soilHumidity1 < 35)
+    {
+      displayPage = 6;
+    }
+    // Drachenbaum
+    // For now
+    // else if (soilHumidity2 < 25)
+    // {
+    //   displayPage = 7;
+    // }
+    // // Ficus Bonsai
+    // else if (soilHumidity3 < 35)
+    // {
+    //   displayPage = 8;
+    // }
 
     if (displayPage == 0)
     {
@@ -224,14 +230,15 @@ void loop()
     {
       screen("Ginseng Bonsai: ", String(soilHumidity1), "%");
     }
-    else if (displayPage == 3)
-    {
-      screen("Drachenbaum: ", String(soilHumidity2), "%");
-    }
-    else if (displayPage == 4)
-    {
-      screen("Ficus Bonsai: ", String(soilHumidity3), "%");
-    }
+    // For now
+    // else if (displayPage == 3)
+    // {
+    //   screen("Drachenbaum: ", String(soilHumidity2), "%");
+    // }
+    // else if (displayPage == 4)
+    // {
+    //   screen("Ficus Bonsai: ", String(soilHumidity3), "%");
+    // }
     else if (displayPage == 5)
     {
       screen("ALARM! Air Humidity too high!: ", String(airHumidity), "%");
@@ -240,14 +247,15 @@ void loop()
     {
       screen("ALARM! Ginsen Bonsai dry!: ", String(soilHumidity1), "%");
     }
-    else if (displayPage == 7)
-    {
-      screen("ALARM! Drachenbaum dry!: ", String(soilHumidity2), "%");
-    }
-    else if (displayPage == 8)
-    {
-      screen("ALARM! Ficus Bonsai dry!: ", String(soilHumidity3), "%");
-    }
+    // For now
+    // else if (displayPage == 7)
+    // {
+    //   screen("ALARM! Drachenbaum dry!: ", String(soilHumidity2), "%");
+    // }
+    // else if (displayPage == 8)
+    // {
+    //   screen("ALARM! Ficus Bonsai dry!: ", String(soilHumidity3), "%");
+    // }
     else if (displayPage == 9)
     {
       screen("Watering...", "", "");
@@ -315,7 +323,8 @@ void alarm(int airHumidity, int getHours)
   }
 }
 
-void pump(int soilHumidity1, int soilHumidity2, int soilHumidity3)
+// void pump(int soilHumidity1, int soilHumidity2, int soilHumidity3)
+void pump(int soilHumidity1)
 {
   // Non-blocking pump control using millis(). Waters whenever any plant's
   // soil humidity is below its threshold, running for `pumpRunDuration`
@@ -337,7 +346,9 @@ void pump(int soilHumidity1, int soilHumidity2, int soilHumidity3)
   if (now < pumpCooldownUntil)
     return;
 
-  bool needsWater = (soilHumidity1 < 35) || (soilHumidity2 < 25) || (soilHumidity3 < 35);
+  // For now
+  // needsWater = (soilHumidity1 < 35) || (soilHumidity2 < 25) || (soilHumidity3 < 35);
+  needsWater = (soilHumidity1 < 35);
   if (needsWater)
   {
     pumpActive = true;
@@ -382,6 +393,7 @@ void updateReadings()
   sensorVal2 = analogRead(A1);
   sensorVal3 = analogRead(A2);
   soilHumidity1 = map(sensorVal1, wet, dry, 100, 0);
-  soilHumidity2 = map(sensorVal2, wet, dry, 100, 0);
-  soilHumidity3 = map(sensorVal3, wet, dry, 100, 0);
+  // For now
+  // soilHumidity2 = map(sensorVal2, wet, dry, 100, 0);
+  // soilHumidity3 = map(sensorVal3, wet, dry, 100, 0);
 }
