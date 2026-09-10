@@ -56,7 +56,8 @@ const unsigned long cooldownDuration = 60000UL; // 1 minute cooldown after seque
 // Pump (shared, waters whichever plant is dry)
 // NOTE: pumpPin drives a relay/MOSFET module, not the pump directly -
 // a digital pin cannot supply enough current for the pump motor.
-const int pumpPin = 7;
+const int pumpPin1 = 7;
+const int pumpPin2 = 8;
 static bool pumpActive;
 static unsigned long pumpStartMillis;
 static unsigned long pumpCooldownUntil;             // timestamp until which re-trigger is blocked
@@ -106,10 +107,11 @@ void setup()
   // display
   display.begin(SSD1306_SWITCHCAPVCC, 0x3C);
 
-  // pump
-  pinMode(pumpPin, OUTPUT);
-  digitalWrite(pumpPin, LOW);
-
+  // pump 1 and 2
+  pinMode(pumpPin1, OUTPUT);
+  digitalWrite(pumpPin1, LOW);
+  pinMode(pumpPin2, OUTPUT);
+  digitalWrite(pumpPin2, LOW);
   // WiFi
   screen("Connecting to WiFi:", ssid, "");
   WiFi.begin(ssid, password);
@@ -336,7 +338,8 @@ void pump(int soilHumidity1)
     if (now - pumpStartMillis >= pumpRunDuration)
     {
       pumpActive = false;
-      digitalWrite(pumpPin, LOW);
+      digitalWrite(pumpPin1, LOW);
+      digitalWrite(pumpPin2, LOW);
       pumpCooldownUntil = now + pumpCooldownDuration;
     }
     return;
@@ -353,7 +356,8 @@ void pump(int soilHumidity1)
   {
     pumpActive = true;
     pumpStartMillis = now;
-    digitalWrite(pumpPin, HIGH);
+    digitalWrite(pumpPin1, HIGH);
+    digitalWrite(pumpPin2, HIGH);
   }
 }
 
